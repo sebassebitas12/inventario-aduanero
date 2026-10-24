@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env.local
+npm-debug.log*
+entrega/
+docs/archive/
+n8n/archive/

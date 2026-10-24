@@ -1,0 +1,155 @@
+{
+    "name":  "Agente de consulta aduanera",
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "public":  true,
+                                         "options":  {
+                                                         "responseMode":  "lastNode",
+                                                         "allowedOrigins":  "http://localhost:5173,http://127.0.0.1:5173"
+                                                     },
+                                         "mode":  "webhook"
+                                     },
+                      "id":  "29d16d1c-1e36-4b53-98e1-c09689c179a4",
+                      "name":  "When chat message received",
+                      "type":  "@n8n/n8n-nodes-langchain.chatTrigger",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       0,
+                                       0
+                                   ],
+                      "webhookId":  "a69d4d05-6d9a-4154-9922-cf71ca5c8ecc"
+                  },
+                  {
+                      "parameters":  {
+                                         "options":  {
+                                                         "systemMessage":  "Eres el asistente de consulta del Sistema de Inventario Aduanero. Responde en espaÃ±ol, con claridad y usando datos reales de la base. La base de Supabase contiene estas 13 tablas y columnas; usa solo estos nombres exactos:\n\npais: id_pais, nombre, codigo_iso\nimportador: id_importador, razon_social, identificacion, direccion, telefono, correo, id_pais\nagente_aduanal: id_agente, nombre, licencia, telefono\ncategoria_arancelaria: id_categoria, codigo_sa, descripcion, porcentaje_arancel\nproducto: id_producto, descripcion, unidad_medida, valor_unitario, id_categoria\nfuncionario: id_funcionario, nombre, cargo, id_supervisor\ndeclaracion: id_declaracion, numero, fecha, regimen, estado, id_importador, id_agente, id_pais_origen\ndetalle_declaracion: id_detalle, id_declaracion, id_producto, cantidad, valor_declarado\ncontenedor: id_contenedor, numero, tipo, peso_kg, id_declaracion\nbodega: id_bodega, nombre, ubicacion, capacidad\ninventario: id_inventario, id_bodega, id_producto, cantidad, fecha_ingreso, estado\nmovimiento_inventario: id_movimiento, tipo, fecha, cantidad, id_producto, id_bodega\ninspeccion: id_inspeccion, fecha, resultado, observaciones, id_declaracion, id_funcionario\n\nRelaciones: importador.id_pais -\u003e pais.id_pais; producto.id_categoria -\u003e categoria_arancelaria.id_categoria; funcionario.id_supervisor -\u003e funcionario.id_funcionario; declaracion.id_importador -\u003e importador.id_importador; declaracion.id_agente -\u003e agente_aduanal.id_agente; declaracion.id_pais_origen -\u003e pais.id_pais; detalle_declaracion.id_declaracion -\u003e declaracion.id_declaracion; detalle_declaracion.id_producto -\u003e producto.id_producto; contenedor.id_declaracion -\u003e declaracion.id_declaracion; inventario.id_bodega -\u003e bodega.id_bodega; inventario.id_producto -\u003e producto.id_producto; movimiento_inventario.id_producto -\u003e producto.id_producto; movimiento_inventario.id_bodega -\u003e bodega.id_bodega; inspeccion.id_declaracion -\u003e declaracion.id_declaracion; inspeccion.id_funcionario -\u003e funcionario.id_funcionario.\n\nValores permitidos: declaracion.regimen = Importacion, Exportacion, Transito o Deposito; declaracion.estado = Retenida, Liberada o En inspeccion; inventario.estado = Retenido o Liberado; movimiento_inventario.tipo = Entrada, Salida o Traslado; inspeccion.resultado = Aprobada, Con observaciones o Rechazada.\n\nUtiliza JOIN para relacionar tablas. Limita resultados grandes (por ejemplo, con LIMIT 100). No inventes valores ni columnas. Si no hay datos, dilo. Evita mostrar identificaciones, telÃ©fonos, correos y direcciones salvo que la pregunta los necesite. Este asistente solo consulta: genera una Ãºnica sentencia SELECT. Nunca propongas INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE ni mÃºltiples sentencias. La credencial de PostgreSQL asignada al nodo debe tener permisos de solo lectura; estas instrucciones por sÃ­ solas no reemplazan esos permisos."
+                                                     }
+                                     },
+                      "id":  "2e90c20d-1234-4ea1-96c1-c192e314b8c0",
+                      "name":  "AI Agent",
+                      "type":  "@n8n/n8n-nodes-langchain.agent",
+                      "typeVersion":  2.2,
+                      "position":  [
+                                       300,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "options":  {
+                                                         "temperature":  0.2
+                                                     },
+                                         "model":  "deepseek-chat"
+                                     },
+                      "id":  "3cb77b41-516e-4f2c-8d8d-22a4a3d2a189",
+                      "name":  "DeepSeek Chat Model",
+                      "type":  "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+                      "typeVersion":  1,
+                      "position":  [
+                                       240,
+                                       230
+                                   ],
+                      "credentials":  {
+                                          "deepSeekApi":  {
+                                                              "id":  "",
+                                                              "name":  "DeepSeek account"
+                                                          }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "contextWindowLength":  6
+                                     },
+                      "id":  "4162d92f-8c40-4b5c-a853-08a9401b12bd",
+                      "name":  "Simple Memory",
+                      "type":  "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+                      "typeVersion":  1.3,
+                      "position":  [
+                                       420,
+                                       230
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "descriptionType":  "manual",
+                                         "toolDescription":  "Consulta las 13 tablas reales del inventario aduanero solo con una sentencia SELECT. No uses SQL que cambie datos o estructura.",
+                                         "operation":  "executeQuery",
+                                         "query":  "={{ $fromAI(\u0027query\u0027, \u0027Consulta SQL SELECT de solo lectura para responder la pregunta del usuario. Una sola sentencia SELECT.\u0027, \u0027string\u0027) }}",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "50fe0737-742e-4b50-9c6a-34e78b8f7fb1",
+                      "name":  "Postgres Tool",
+                      "type":  "n8n-nodes-base.postgresTool",
+                      "typeVersion":  2.5,
+                      "position":  [
+                                       600,
+                                       230
+                                   ],
+                      "credentials":  {
+                                          "postgres":  {
+                                                           "id":  "",
+                                                           "name":  "Postgres aduanero (solo lectura)"
+                                                       }
+                                      }
+                  }
+              ],
+    "connections":  {
+                        "When chat message received":  {
+                                                           "main":  [
+                                                                        [
+                                                                            {
+                                                                                "node":  "AI Agent",
+                                                                                "type":  "main",
+                                                                                "index":  0
+                                                                            }
+                                                                        ]
+                                                                    ]
+                                                       },
+                        "Simple Memory":  {
+                                              "ai_memory":  [
+                                                                [
+                                                                    {
+                                                                        "node":  "AI Agent",
+                                                                        "type":  "ai_memory",
+                                                                        "index":  0
+                                                                    }
+                                                                ]
+                                                            ]
+                                          },
+                        "Postgres Tool":  {
+                                              "ai_tool":  [
+                                                              [
+                                                                  {
+                                                                      "node":  "AI Agent",
+                                                                      "type":  "ai_tool",
+                                                                      "index":  0
+                                                                  }
+                                                              ]
+                                                          ]
+                                          },
+                        "DeepSeek Chat Model":  {
+                                                    "ai_languageModel":  [
+                                                                             [
+                                                                                 {
+                                                                                     "node":  "AI Agent",
+                                                                                     "type":  "ai_languageModel",
+                                                                                     "index":  0
+                                                                                 }
+                                                                             ]
+                                                                         ]
+                                                }
+                    },
+    "active":  false,
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "meta":  {
+                 "templateCredsSetupCompleted":  false
+             },
+    "tags":  [
+
+             ]
+}
